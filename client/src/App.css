@@ -1,0 +1,76 @@
+.book {
+  width: 90%;
+  max-width: 900px;
+  margin: 40px auto;
+  background-color: #e8f5e9;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 24px;
+  position: relative;
+}
+
+.book h2 {
+  text-align: center;
+  color: #2e7d32;
+  margin-bottom: 20px;
+}
+
+.book table {
+  width: 100%;
+  border-collapse: collapse; /* セルの二重線を防ぐ */
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.book th, .book td {
+  border: 1px solid #c8e6c9;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.book th {
+  background-color: #a5d6a7;
+  color: #1b5e20;
+}
+
+.book tr:nth-child(even) {
+  background-color: #f1f8e9;
+}
+
+/* パネル */
+.panel {
+  position: absolute;       /* .book に対して右側に配置 */
+  top: 0;
+  left: 100%;              /* 本体右端から開始 */
+  width: 300px;
+  height: 100%;
+  background-color: #a5d6a7; /* 本体と統一 */
+  box-shadow: -4px 0 8px rgba(0,0,0,0.2);
+  padding: 20px;
+  transform: translateX(100%); /* 初期は右側に隠す */
+  transition: transform 0.4s ease;
+  z-index: 10;
+}
+
+.panel.panel-open {
+  transform: translateX(0); /* スライドイン */
+}
+
+button {
+  margin-top: 20px;
+  cursor: pointer;
+}
+.button-group button {
+  background-color: #2e7d32;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px; /* ボタン間のスペース */
+}
+
+.button-group button:last-child {
+  margin-right: 0; /* 最後のボタンは右余白なし */
+}
