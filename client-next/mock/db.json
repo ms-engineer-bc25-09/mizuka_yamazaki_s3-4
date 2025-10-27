@@ -1,0 +1,40 @@
+{
+  "recordsData": [
+    {
+      "id": 1,
+      "date": "2025-10-02",
+      "category": "家賃",
+      "details": "家賃",
+      "inAmount": "",
+      "outAmount": 100000,
+      "memo": "2025年9月分の家賃を振込み忘れたため、振り込んだ"
+    },
+    {
+      "id": 2,
+      "date": "2025-10-01",
+      "category": "給料",
+      "details": "給料振込",
+      "inAmount": 300000,
+      "outAmount": "",
+      "memo": ""
+    },
+    {
+      "id": 3,
+      "date": "2025-09-30",
+      "category": "食費",
+      "details": "飲み会代",
+      "inAmount": "",
+      "outAmount": 15000,
+      "memo": "高校の同級生と飲み会"
+    },
+    {
+      "id": 4,
+      "date": "2025-09-27",
+      "category": "雑収入",
+      "details": "お小遣い",
+      "inAmount": "",
+      "outAmount": 15000,
+      "memo": "おばあちゃんからお小遣い"
+    }
+  ]
+}
