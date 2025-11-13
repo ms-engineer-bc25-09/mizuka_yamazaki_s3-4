@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: kakeibo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root      # rootユーザーのパスワード
+      MYSQL_DATABASE: kakeibo_db     # 起動時に自動で作るDB名
+      TZ: Asia/Tokyo                 # タイムゾーン
+    ports:
+      - "3306:3306"                  # ホスト:コンテナ
+    volumes:
+      - mysql_data:/var/lib/mysql    # データの永続化
+
+volumes:
+  mysql_data:

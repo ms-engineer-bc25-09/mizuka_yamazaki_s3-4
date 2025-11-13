@@ -9,7 +9,9 @@ import {
   FaChevronRight,
 } from "../icons";
 
+/* ---------- 型定義 ---------- */
 type Rec = {
+  id?: number;
   date: string; // "YYYY-MM-DD"
   category: string;
   details?: string;
@@ -18,25 +20,31 @@ type Rec = {
   memo?: string;
 };
 
-type ModalState =
-  | { index: number; mode: "view"; initial: null }
-  | { index: number | null; mode: "edit"; initial: Rec };
+/* ---------- APIユーティリティ ---------- */
+const API = "http://localhost:4000/records";
 
+const fetchRecords = () =>
+  fetch(API + "?ts=" + Date.now()) // キャッシュ回避
+    .then((res) => res.json())
+    .then((data: Rec[]) =>
+      [...data].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+    );
+
+/* ---------- ページ本体 ---------- */
 export default function Home() {
   const [recordsData, setRecordsData] = useState<Rec[]>([]);
-  const [modal, setModal] = useState<ModalState>({ index: -1, mode: "view", initial: null });
+  const [modal, setModal] = useState<
+    | { index: number; mode: "view"; initial: null }
+    | { index: number | null; mode: "edit"; initial: Rec }
+  >({ index: -1, mode: "view", initial: null });
   const [currentMonth, setCurrentMonth] = useState<string>("");
 
-  // 取得＆新しい順にソート
+  // 初回取得（新しい順にソート）
   useEffect(() => {
-    fetch("http://localhost:3001/recordsData")
-      .then((res) => res.json())
-      .then((data: Rec[]) => {
-        const sorted = [...data].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setRecordsData(sorted);
-      })
+    fetchRecords()
+      .then(setRecordsData)
       .catch((err) => console.error("取得に失敗しました", err));
   }, []);
 
@@ -49,18 +57,17 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // 月一覧（新しい順）
+  // 月一覧（基本は昇順 → 表示用に反転も用意）
   const monthOptionsDesc = Array.from(
     new Set(recordsData.map((r) => r.date?.slice(0, 7)).filter(Boolean))
-  )
-    .sort()
-    .reverse();
+  ).sort(); // 古い → 新しい
 
-  const monthOptionsAsc = [...monthOptionsDesc].reverse();
+  const monthOptionsAsc = [...monthOptionsDesc].reverse(); // 新しい → 古い（表示用）
 
   // 初期表示（月は最新）
   useEffect(() => {
-    if (!currentMonth && monthOptionsDesc.length) setCurrentMonth(monthOptionsDesc[0]);
+    if (!currentMonth && monthOptionsDesc.length)
+      setCurrentMonth(monthOptionsDesc[monthOptionsDesc.length - 1]); // 一番新しい月
   }, [monthOptionsDesc, currentMonth]);
 
   // 表示対象
@@ -86,18 +93,27 @@ export default function Home() {
   };
 
   // モーダル制御
-  const openView = (index: number) => setModal({ index, mode: "view", initial: null });
+  const openView = (index: number) =>
+    setModal({ index, mode: "view", initial: null });
   const openEditExisting = (index: number) =>
     setModal({ index, mode: "edit", initial: recordsData[index] });
   const openEditNew = () =>
     setModal({
       index: null,
       mode: "edit",
-      initial: { date: "", category: "", details: "", inAmount: "", outAmount: "", memo: "" },
+      initial: {
+        date: "",
+        category: "",
+        details: "",
+        inAmount: "",
+        outAmount: "",
+        memo: "",
+      },
     });
   const closeModal = () => setModal({ index: -1, mode: "view", initial: null });
 
-  const openRecordIndex = modal.mode === "view" && modal.index >= 0 ? modal.index : null;
+  const openRecordIndex =
+    modal.mode === "view" && modal.index >= 0 ? modal.index : null;
   const setOpenRecordIndex = (v: number | null) => {
     if (v === null) closeModal();
     else openView(v);
@@ -114,106 +130,185 @@ export default function Home() {
 
   const r = openRecordIndex !== null ? recordsData[openRecordIndex] : null;
 
-  // 月ナビ
+  // 月ナビ（右クリックで古い月に進む）
   const goPrevMonth = () => {
-    const idx = monthOptionsDesc.indexOf(currentMonth);
-    if (idx >= 0 && idx < monthOptionsDesc.length - 1) {
-      setCurrentMonth(monthOptionsDesc[idx + 1]);
+    const idx = monthOptionsAsc.indexOf(currentMonth);
+    if (idx > 0) {
+      // 左：新しいほうへ戻る
+      setCurrentMonth(monthOptionsAsc[idx - 1]);
     }
   };
   const goNextMonth = () => {
-    const idx = monthOptionsDesc.indexOf(currentMonth);
-    if (idx > 0) setCurrentMonth(monthOptionsDesc[idx - 1]);
+    const idx = monthOptionsAsc.indexOf(currentMonth);
+    if (idx >= 0 && idx < monthOptionsAsc.length - 1) {
+      // 右：古いほうへ進む
+      setCurrentMonth(monthOptionsAsc[idx + 1]);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100/30 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-emerald-100/20 py-8">
       <div className="max-w-3xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-md border border-blue-200/70 p-5 relative">
-          {/* 右上：新規 */}
-          <button
-            className="absolute right-5 top-5 text-blue-800 hover:text-blue-600"
-            onClick={openEditNew}
-            title="データの追加"
-          >
-            <FaPlus size={22} style={{ cursor: "pointer" }} />
-          </button>
-
-          {/* 月見出し */}
-          <div className="mt-1 flex items-center justify-center gap-4">
-            <button
-              className="p-1.5 rounded-lg text-blue-800/80 hover:bg-blue-50 disabled:opacity-40"
-              onClick={goPrevMonth}
-              disabled={monthOptionsDesc.indexOf(currentMonth) === monthOptionsDesc.length - 1}
-              aria-label="前の月"
-              title="前の月"
-            >
-              <FaChevronLeft size={18} />
-            </button>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              <span className="text-base sm:text-lg font-semibold tracking-wide text-blue-900">
-                {currentMonth || "---- --"}
-              </span>
+        <div className="bg-white rounded-2xl shadow-md border border-emerald-100 p-5">
+          {/* ヘッダー：ロゴ＋月切り替え＋新規ボタン */}
+          <div className="flex items-center justify-between gap-4">
+            {/* 左：ロゴ（家マーク） */}
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  className="h-6 w-6"
+                >
+                  <path
+                    d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-5h-4v5H5a1 1 0 0 1-1-1v-9.5z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              <div className="leading-tight">
+                <div className="text-xs font-semibold text-emerald-950">
+                  家計簿
+                </div>
+                <div className="text-[10px] text-emerald-900/60">
+                  Monthly household tracker
+                </div>
+              </div>
             </div>
 
+            {/* 真ん中：月見出し（ナビ） */}
+            <div className="flex items-center gap-3">
+              <button
+                className="p-1.5 rounded-lg text-emerald-800/80 hover:bg-rose-50 disabled:opacity-40"
+                onClick={goPrevMonth}
+                disabled={monthOptionsAsc.indexOf(currentMonth) <= 0}
+                aria-label="新しい月"
+                title="新しい月"
+              >
+                <FaChevronLeft size={18} />
+              </button>
+
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="text-base sm:text-lg font-semibold tracking-wide text-emerald-950">
+                  {currentMonth || "---- --"}
+                </span>
+              </div>
+
+              <button
+                className="p-1.5 rounded-lg text-emerald-800/80 hover:bg-emerald-50 disabled:opacity-40"
+                onClick={goNextMonth}
+                disabled={
+                  monthOptionsAsc.indexOf(currentMonth) ===
+                  monthOptionsAsc.length - 1
+                }
+                aria-label="古い月"
+                title="古い月"
+              >
+                <FaChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* 右：新規追加ボタン */}
             <button
-              className="p-1.5 rounded-lg text-blue-800/80 hover:bg-blue-50 disabled:opacity-40"
-              onClick={goNextMonth}
-              disabled={monthOptionsDesc.indexOf(currentMonth) <= 0}
-              aria-label="次の月"
-              title="次の月"
+              className="p-2 rounded-lg text-emerald-800 hover:bg-emerald-50"
+              onClick={openEditNew}
+              title="データの追加"
             >
-              <FaChevronRight size={18} />
+              <FaPlus size={18} style={{ cursor: "pointer" }} />
             </button>
           </div>
 
-          {/* 当月サマリ */}
-          <SummaryBar inTotal={totals.in} outTotal={totals.out} net={net} yen={yen} />
-
-          {/* 一覧 */}
-          <div className="mt-5 overflow-x-auto rounded-xl border border-blue-200/60 shadow-sm">
-            <table className="w-full table-fixed text-[11px] sm:text-sm md:text-base">
-              <thead className="bg-blue-100 text-blue-900">
-                <tr>
-                  <th className="px-3 py-2 font-semibold text-center">日付</th>
-                  <th className="px-3 py-2 font-semibold text-center">カテゴリ</th>
-                  <th className="px-3 py-2 font-semibold text-center">入金</th>
-                  <th className="px-3 py-2 font-semibold text-center">出金</th>
-                  <th className="px-3 py-2 font-semibold text-center">操作</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-blue-100 [&>tr:hover]:bg-blue-50/70 [&>tr>td]:py-2">
-                {visible.map(({ r, i }) => (
-                  <Record
-                    key={i}
-                    index={i}
-                    date={r.date}
-                    category={r.category}
-                    details={r.details || ""}
-                    inAmount={r.inAmount ?? ""}
-                    outAmount={r.outAmount ?? ""}
-                    memo={r.memo || ""}
-                    openRecordIndex={openRecordIndex}
-                    setOpenRecordIndex={setOpenRecordIndex}
-                    onDelete={handleDelete}
-                    onEdit={handleEdit}
-                  />
+          {/* 一覧＋月リスト 横並び（PC）／スマホは一覧のみ */}
+          <div className="mt-5 flex gap-6">
+            {/* 左：月リスト（スマホでは非表示） */}
+            <div className="hidden md:block w-28 flex-shrink-0">
+              <h3 className="text-xs font-semibold text-emerald-900">
+                月リスト
+              </h3>
+              <ul className="mt-2 space-y-1">
+                {monthOptionsAsc.map((m) => (
+                  <li key={m}>
+                    <button
+                      className={`w-full inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ring-1 ring-inset
+                        ${
+                          m === currentMonth
+                            ? "bg-emerald-500 text-white ring-emerald-500"
+                            : "bg-emerald-50 text-emerald-800 ring-emerald-200 hover:bg-emerald-100"
+                        }`}
+                      onClick={() => setCurrentMonth(m)}
+                    >
+                      {m}
+                    </button>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            </div>
+
+            {/* 右：その月の合計＋家計簿一覧（同じ幅のカラム） */}
+            <div className="flex-1 flex flex-col gap-3">
+              {/* 当月サマリ（テーブルと同じ幅の中に配置） */}
+              <SummaryBar
+                inTotal={totals.in}
+                outTotal={totals.out}
+                net={net}
+                yen={yen}
+              />
+
+              {/* 一覧テーブル */}
+              <div className="overflow-x-auto rounded-xl border border-emerald-100 shadow-sm">
+                <table className="w-full table-fixed text-[11px] sm:text-sm md:text-base">
+                  <thead className="bg-emerald-50 text-emerald-900">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold text-center">
+                        日付
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-center">
+                        カテゴリ
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-center">
+                        入金
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-center">
+                        出金
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-center">
+                        操作
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&>tr]:border-b [&>tr]:border-emerald-50 [&>tr:hover]:bg-emerald-50/70 [&>tr>td]:py-2">
+                    {visible.map(({ r, i }) => (
+                      <Record
+                        key={i}
+                        index={i}
+                        date={r.date}
+                        category={r.category}
+                        details={r.details || ""}
+                        inAmount={r.inAmount ?? ""}
+                        outAmount={r.outAmount ?? ""}
+                        memo={r.memo || ""}
+                        openRecordIndex={openRecordIndex}
+                        setOpenRecordIndex={setOpenRecordIndex}
+                        onDelete={handleDelete}
+                        onEdit={handleEdit}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* ▼▼ モーダル（閲覧 / 編集） ▼▼ */}
           {(openRecordIndex !== null || modal.mode === "edit") && (
             <div
               className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 sm:pt-32"
-              onClick={closeModal}
+              onClick={modal.mode === "edit" ? undefined : closeModal}
             >
               <div className="absolute inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity" />
               <div
-                className="relative bg-white rounded-2xl border border-blue-200 shadow-lg w-full max-w-[420px] p-6 space-y-5 text-sm text-slate-800"
+                className="relative bg-white rounded-2xl border border-emerald-100 shadow-lg w-full max-w-[420px] p-6 space-y-5 text-sm text-slate-800"
                 onClick={(e) => e.stopPropagation()}
                 style={{ boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
               >
@@ -222,7 +317,7 @@ export default function Home() {
                   <>
                     <div className="absolute right-3 top-3 flex gap-2">
                       <button
-                        className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        className="p-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         onClick={() => openEditExisting(openRecordIndex!)}
                         title="編集"
                       >
@@ -237,14 +332,19 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <h3 className="text-sm font-bold text-blue-900 mt-9">{r?.date}</h3>
+                    <h3 className="text-sm font-bold text-emerald-900 mt-9">
+                      {r?.date}
+                    </h3>
 
                     <div className="space-y-3">
                       <Item label="カテゴリ" value={r?.category} />
                       <Item label="詳細" value={r?.details || "-"} />
                       <Money label="入金" value={r?.inAmount ?? 0} yen={yen} />
                       <Money label="出金" value={r?.outAmount ?? 0} yen={yen} />
-                      <Item label="メモ" value={r?.memo?.trim() ? r.memo : "-"} />
+                      <Item
+                        label="メモ"
+                        value={r?.memo?.trim() ? r.memo : "-"}
+                      />
                     </div>
 
                     <button
@@ -259,34 +359,56 @@ export default function Home() {
                   </>
                 )}
 
-                {/* ★ 編集モード（復活） */}
+                {/* ★ 編集モード */}
                 {modal.mode === "edit" && (
                   <EditForm
                     initial={modal.initial as Rec}
                     onCancel={closeModal}
-                    onSave={(updated) => {
-                      if (modal.index === null) {
-                        // 新規
-                        setRecordsData((prev) =>
-                          [...prev, normalize(updated)].sort(
-                            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                          )
-                        );
-                        const newMonth = (updated.date || "").slice(0, 7);
-                        if (newMonth) setCurrentMonth(newMonth);
-                        closeModal();
-                      } else {
-                        // 既存更新
-                        setRecordsData((prev) => {
-                          const next = [...prev];
-                          next[modal.index!] = normalize(updated);
-                          return next.sort(
-                            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                          );
-                        });
-                        const updMonth = (updated.date || "").slice(0, 7);
-                        if (updMonth) setCurrentMonth(updMonth);
-                        openView(modal.index);
+                    onSave={async (updated) => {
+                      try {
+                        if (modal.index === null) {
+                          // ★ 新規 → POST /records
+                          const res = await fetch(API, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(updated),
+                          });
+                          const saved: Rec = await res.json();
+
+                          // サーバーを正として再取得
+                          const next = await fetchRecords();
+                          setRecordsData(next);
+
+                          const newMonth = (saved.date || "").slice(0, 7);
+                          if (newMonth) setCurrentMonth(newMonth);
+
+                          closeModal();
+                        } else {
+                          // ★ 既存更新 → PUT /records/:id
+                          const target = recordsData[modal.index!];
+                          const id = target?.id;
+                          if (!id) {
+                            console.error("更新対象に id がありません");
+                            return;
+                          }
+
+                          await fetch(`${API}/${id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(updated),
+                          });
+
+                          // 最新データを再取得して反映
+                          const next = await fetchRecords();
+                          setRecordsData(next);
+
+                          const updMonth = (updated.date || "").slice(0, 7);
+                          if (updMonth) setCurrentMonth(updMonth);
+
+                          openView(modal.index);
+                        }
+                      } catch (e) {
+                        console.error("保存に失敗しました", e);
                       }
                     }}
                   />
@@ -295,27 +417,6 @@ export default function Home() {
             </div>
           )}
           {/* ▲▲ モーダルここまで ▲▲ */}
-
-          {/* 月リスト */}
-          <div className="mt-6">
-            <h3 className="text-xs font-semibold text-blue-900">月リスト</h3>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {monthOptionsAsc.map((m) => (
-                <li key={m}>
-                  <button
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ring-1 ring-inset
-                      ${m === currentMonth
-                        ? "bg-blue-600 text-white ring-blue-600"
-                        : "bg-blue-50 text-blue-800 ring-blue-200 hover:bg-blue-100"
-                      }`}
-                    onClick={() => setCurrentMonth(m)}
-                  >
-                    {m}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </div>
     </div>
@@ -330,11 +431,11 @@ export default function Home() {
   }
 }
 
-/** 小パーツ */
+/* ---------- 小パーツ ---------- */
 function Item({ label, value }: { label: string; value: any }) {
   return (
     <div>
-      <div className="text-[11px] text-blue-900/60">{label}</div>
+      <div className="text-[11px] text-emerald-900/60">{label}</div>
       <div className="font-medium text-slate-900">{value}</div>
     </div>
   );
@@ -351,8 +452,10 @@ function Money({
 }) {
   return (
     <div>
-      <div className="text-[11px] text-blue-900/60">{label}</div>
-      <div className="font-semibold text-base text-blue-900">{yen(value)}</div>
+      <div className="text-[11px] text-emerald-900/60">{label}</div>
+      <div className="font-semibold text-base text-emerald-900">
+        {yen(value)}
+      </div>
     </div>
   );
 }
@@ -360,12 +463,12 @@ function Money({
 function BottomHandle() {
   return (
     <div className="flex justify-center mt-4">
-      <span className="inline-block h-1.5 w-12 rounded-full bg-blue-200/80" />
+      <span className="inline-block h-1.5 w-12 rounded-full bg-emerald-200/80" />
     </div>
   );
 }
 
-/** 当月サマリ（縦2行・角丸控えめ） */
+/* ---------- KPIカード ---------- */
 function SummaryBar({
   inTotal,
   outTotal,
@@ -378,7 +481,7 @@ function SummaryBar({
   yen: (v: number | string) => string;
 }) {
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+    <div className="mt-1 flex flex-wrap items-center justify-center md:justify-between gap-3">
       <MetricCard label="入金" value={yen(inTotal)} />
       <MetricCard label="出金" value={yen(outTotal)} />
       <MetricCard label="収支" value={yen(net)} net={net} />
@@ -386,7 +489,6 @@ function SummaryBar({
   );
 }
 
-/** KPIカード（縦2行・rounded-xl・淡グラデ） */
 function MetricCard({
   label,
   value,
@@ -396,23 +498,23 @@ function MetricCard({
   value: string;
   net?: number;
 }) {
-  let ring = "ring-blue-200";
-  let text = "text-blue-900";
-  let bg = "from-white to-blue-50/30";
+  let ring = "ring-emerald-100";
+  let text = "text-emerald-900";
+  let bg = "from-white to-emerald-50/40";
   let icon: string | null = null;
   let labelTint = "text-slate-600";
 
   if (typeof net === "number") {
     if (net > 0) {
       ring = "ring-emerald-200";
-      text = "text-emerald-800";
-      bg = "from-white to-emerald-50/40";
+      text = "text-emerald-900";
+      bg = "from-white to-emerald-50/70";
       icon = "▲";
       labelTint = "text-emerald-700/80";
     } else if (net < 0) {
       ring = "ring-rose-200";
       text = "text-rose-800";
-      bg = "from-white to-rose-50/40";
+      bg = "from-white to-rose-50/50";
       icon = "▼";
       labelTint = "text-rose-700/80";
     } else {
@@ -430,7 +532,7 @@ function MetricCard({
                   rounded-xl px-4 py-3 min-w-[9.5rem] sm:min-w-[10.5rem]
                   ring-1 ${ring}
                   bg-gradient-to-b ${bg}
-                  shadow-[0_1px_0_rgba(30,64,175,0.05)]
+                  shadow-[0_1px_0_rgba(22,163,74,0.06)]
                   hover:shadow-md hover:-translate-y-0.5 transition`}
       title={label}
     >
@@ -438,14 +540,16 @@ function MetricCard({
         {icon && <span className="opacity-70">{icon}</span>}
         <span className="tracking-wide">{label}</span>
       </div>
-      <div className={`text-base font-bold ${text} tracking-wide tabular-nums`}>
+      <div
+        className={`text-base font-bold ${text} tracking-wide tabular-nums`}
+      >
         {value}
       </div>
     </div>
   );
 }
 
-/** 編集フォーム（カテゴリはセレクト） */
+/* ---------- 編集フォーム ---------- */
 function EditForm({
   initial,
   onCancel,
@@ -466,7 +570,11 @@ function EditForm({
 
   const bind =
     (k: keyof Rec) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
+    ) =>
       setForm((s) => ({ ...s, [k]: (e.target as any).value }));
 
   return (
@@ -480,28 +588,40 @@ function EditForm({
         <FaTimes />
       </button>
 
-      <h3 className="text-sm font-bold text-blue-900 mt-8">編集</h3>
+      <h3 className="text-sm font-bold text-emerald-900 mt-8">編集</h3>
 
       <div className="space-y-3">
         <L label="日付">
-          <input type="date" className="i" value={form.date} onChange={bind("date")} />
+          <input
+            type="date"
+            className="i"
+            value={form.date}
+            onChange={bind("date")}
+          />
         </L>
 
         <L label="カテゴリ">
-          <select className="i" value={form.category} onChange={bind("category")}>
+          <select
+            className="i"
+            value={form.category}
+            onChange={bind("category")}
+          >
             <option value="">選択してください</option>
             <option value="食費">食費</option>
             <option value="住居">住居</option>
             <option value="交通">交通</option>
-            <option value="日用品">日用品</option>
-            <option value="娯楽">娯楽</option>
-            <option value="医療・保険">医療・保険</option>
+            <option value="雑費">雑費</option>
+            <option value="収入">収入</option>
             <option value="その他">その他</option>
           </select>
         </L>
 
         <L label="詳細">
-          <input className="i" value={form.details} onChange={bind("details")} />
+          <input
+            className="i"
+            value={form.details}
+            onChange={bind("details")}
+          />
         </L>
 
         <L label="入金">
@@ -525,14 +645,19 @@ function EditForm({
         </L>
 
         <L label="メモ">
-          <textarea className="i" rows={3} value={form.memo} onChange={bind("memo")} />
+          <textarea
+            className="i"
+            rows={3}
+            value={form.memo}
+            onChange={bind("memo")}
+          />
         </L>
       </div>
 
       {/* 右下に保存 */}
       <div className="flex justify-end pt-3">
         <button
-          className="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          className="px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
           onClick={() => onSave(form)}
         >
           保存
@@ -545,8 +670,8 @@ function EditForm({
         .i {
           width: 100%;
           padding: 0.5rem 0.75rem;
-          border-radius: 0.75rem; /* ちょい丸で統一感 */
-          border: 1px solid rgba(59, 130, 246, 0.3); /* blue-500 30% */
+          border-radius: 0.75rem;
+          border: 1px solid rgba(16, 185, 129, 0.3);
           background: #fff;
         }
       `}</style>
@@ -557,7 +682,7 @@ function EditForm({
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-[11px] text-blue-900/60 mb-1">{label}</div>
+      <div className="text-[11px] text-emerald-900/60 mb-1">{label}</div>
       {children}
     </label>
   );

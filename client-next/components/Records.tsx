@@ -30,7 +30,9 @@ const Record: React.FC<RecordProps> = ({
 }) => {
   return (
     <tr className="text-center">
-      <td className="px-3">{date}</td>
+      <td className="px-3">
+        {new Date(date).toLocaleDateString("ja-JP")}
+      </td>
       <td className="px-3">{category}</td>
       <td className="px-3">{inAmount || "-"}</td>
       <td className="px-3">{outAmount || "-"}</td>
@@ -46,7 +48,7 @@ const Record: React.FC<RecordProps> = ({
         >
           {/* 詳細（トグル） */}
           <FaBook
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", color: "#555" }}
             onClick={() =>
               openRecordIndex === index ? setOpenRecordIndex(null) : setOpenRecordIndex(index)
             }
@@ -55,14 +57,14 @@ const Record: React.FC<RecordProps> = ({
 
           {/* 編集（鉛筆） */}
           <FaEdit
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", color: "#555" }}
             onClick={() => onEdit(index)}
             title="編集"
           />
 
           {/* 削除（ゴミ箱） */}
           <FaTrash
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", color: "#555" }}
             onClick={() => onDelete(index)}
             title="削除"
           />

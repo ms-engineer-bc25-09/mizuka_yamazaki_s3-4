@@ -1,0 +1,121 @@
+{
+  "recordsData": [
+    {
+      "id": 1,
+      "date": "2025-10-30",
+      "category": "食費",
+      "details": "ｓ",
+      "inAmount": "",
+      "outAmount": "22222",
+      "memo": ""
+    },
+    {
+      "id": 2,
+      "date": "2025-10-08",
+      "category": "住居",
+      "details": "家賃",
+      "inAmount": "",
+      "outAmount": "50000",
+      "memo": "10月分遅延"
+    },
+    {
+      "id": 3,
+      "date": "2025-09-25",
+      "category": "収入",
+      "details": "給与",
+      "inAmount": "400000",
+      "outAmount": "",
+      "memo": ""
+    },
+    {
+      "id": 4,
+      "date": "2025-09-10",
+      "category": "雑費",
+      "details": "プレゼント購入",
+      "inAmount": "",
+      "outAmount": "10000",
+      "memo": "田中さんの誕生日プレゼント購入費用"
+    },
+    {
+      "id": 5,
+      "date": "2025-09-18",
+      "category": "食費",
+      "details": "飲み代",
+      "inAmount": "",
+      "outAmount": "20000",
+      "memo": ""
+    },
+    {
+      "id": 6,
+      "date": "2025-11-01",
+      "category": "交通",
+      "details": "バス代",
+      "inAmount": "",
+      "outAmount": "1500",
+      "memo": ""
+    },
+    {
+      "id": 7,
+      "date": "2025-07-31",
+      "category": "食費",
+      "details": "焼肉",
+      "inAmount": "",
+      "outAmount": "20000",
+      "memo": ""
+    },
+    {
+      "id": 8,
+      "date": "2025-07-18",
+      "category": "食費",
+      "details": "焼肉",
+      "inAmount": "",
+      "outAmount": "20000",
+      "memo": ""
+    },
+    {
+      "id": 9,
+      "date": "2025-11-05",
+      "category": "雑費",
+      "details": "マツモトキヨシ",
+      "inAmount": "",
+      "outAmount": "1500",
+      "memo": ""
+    },
+    {
+      "id": 10,
+      "date": "2025-11-04",
+      "category": "食費",
+      "details": "高島屋",
+      "inAmount": "",
+      "outAmount": "5000",
+      "memo": ""
+    },
+    {
+      "id": 11,
+      "date": "2025-11-02",
+      "category": "収入",
+      "details": "給与",
+      "inAmount": "400000",
+      "outAmount": "",
+      "memo": ""
+    },
+    {
+      "id": 12,
+      "date": "2025-10-02",
+      "category": "収入",
+      "details": "給与",
+      "inAmount": "450000",
+      "outAmount": "",
+      "memo": ""
+    },
+    {
+      "id": 13,
+      "date": "2025-07-02",
+      "category": "収入",
+      "details": "給与",
+      "inAmount": "10000",
+      "outAmount": "",
+      "memo": ""
+    }
+  ]
+}
